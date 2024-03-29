@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Wordle version wish</title>
+
+  <style>
+    body {
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    ul {
+      list-style-type: none;
+      padding: 0;
+      counter-reset: list-counter;
+    }
+
+    li {
+      counter-increment: list-counter;
+      margin: 0.5rem;
+    }
+
+    li::before {
+      content: counter(list-counter) ": ";
+      margin-right: 0.5rem;
+      font-weight: bold;
+    }
+
+  </style>
+</head>
+<body>
+  <h1>Wordle</h1>
+
+  <ul class="guess"></ul>
+
+  <div class="controls">
+    <label for="guess-input">Votre tentative</label>
+    <input type="text" id="guess-input" placeholder="???" />
+    <button id="guess-button">Calculer</button>
+    <button id="new-game-button" disabled>Nouveau mot</button>
+  </div>
+
+  <script type="module">
+    const get_max_length = async () => {
+      const resp = await fetch('/length');
+      const data = await resp.json();
+      return data.length;
+    }
+
+    const guess = async (word) => {
+      const resp = await fetch('/guess', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ 'guess': word })
+      });
+      const data = await resp.json();
+      return data;
+    }
+
+    const new_game = async () => {
+      await fetch('/new');
+    }
+
+    const input = document.querySelector('#guess-input');
+    let length = await get_max_length();
+    input.setAttribute('maxlength', length);
+
+    const guesses = document.querySelector('.guess');
+    const new_game_button = document.querySelector('#new-game-button');
+
+
+
+    document.querySelector('#guess-button').addEventListener('click', async (e) => {
+      const word = input.value;
+      const result = await guess(word);
+      
+      
+      const li = document.createElement('li');
+      li.textContent = `${result.clues}`;
+      guesses.appendChild(li);
+
+      if (result.finished) {
+        e.target.disabled = true;
+        new_game_button.disabled = false;
+      }
+    });
+
+    new_game_button.addEventListener('click', async (e) => {
+      await new_game();
+      length = await get_max_length();
+      input.value = '';
+
+      guesses.innerHTML = '';
+      document.querySelector('#guess-button').disabled = false;
+      e.target.disabled = true;
+    });
+  </script>
+</body>
+</html>
